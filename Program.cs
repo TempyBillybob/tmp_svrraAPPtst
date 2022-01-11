@@ -24,7 +24,7 @@ namespace SAR_Server_App
                         Match match1 = new Match(42896, "192.168.1.198", false, false);
                         break;
                     default:
-                        Logger.Failure("invalid key... try again");
+                        Logger.Failure("invalid key... please try again");
                         Logger.Warn("What region are you from? ['Y' OR 'N' key]");
                         break;
                 }
