@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Lidgren.Network;
+﻿using Lidgren.Network;
 /*
 so the idea of this class is to be a client object that a server object can store in a list.
 */
@@ -54,26 +51,7 @@ namespace SAR_Server_App
         public bool reloading = false;
         public bool alive = true;
 
-        /*
-        public Player() //Default
-        {
-            this.myID = -1;
-            this.avatarID = -1;
-            this.umbrellaID = -1;
-            this.gravestoneID = -1;
-            this.deathExplosionID = -1;
-            this.emoteID = -1;
-            this.hatID = -1;
-            this.glassesID = -1;
-            this.beardID = -1;
-            this.clothesID = -1;
-            this.meleeID = -1;
-            //the first one I know what it might be by name, but last two not too sure take a better look.
-            this.gunSkinIndexByID = 0;
-            this.UNKNOWN_DATA = -1;
-            this.UNKNOWN_BYTE = 0;
-
-        }*/
+        //ya
         public Player(short assignID, short charID, short parasollID, short graveID, short deathEffectID, short[] danceIDs, short hatID, short glassID, short brdID, short clothingID, short meleeID, byte gunbyID, short[] indexLists, byte[] values)
         {
             this.assignedID = assignID;

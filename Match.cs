@@ -14,9 +14,9 @@ namespace SAR_Server_App
         public Thread updateThread;
         private int matchSeed1, matchSeed2, matchSeed3; //figure out later
         private int REFRESH_RATE = 10;
-        private bool MATCH_STARTED;
+        private bool matchStarted;
         private bool MATCH_FULL;
-        public double startTimer = 0;
+        public double timeUntilStart = 0;
         int prevTime = DateTime.Now.Second; //redo start times later
 
         //these get to go at some point, or never. I'm quite lazy.
@@ -25,10 +25,10 @@ namespace SAR_Server_App
 
         public Match(int port, string ip, bool db, bool annoying)
         {
-            MATCH_STARTED = false;
+            matchStarted = false;
             MATCH_FULL = false;
             playerList = new Player[64];
-            startTimer = 120.00;
+            timeUntilStart = 120.00;
             updateThread = new Thread(serverUpdateThread);
             DEBUG_ENABLED = db;
             ANOYING_DEBUG1 = annoying;
@@ -36,8 +36,8 @@ namespace SAR_Server_App
             config.EnableMessageType(NetIncomingMessageType.ConnectionLatencyUpdated);
             config.EnableMessageType(NetIncomingMessageType.ConnectionApproval);
             config.PingInterval = 22f;
-            config.LocalAddress = System.Net.IPAddress.Parse(ip); //"192.168.1.198" DEFAULT
-            config.Port = port; //42896 DEFAULT
+            config.LocalAddress = System.Net.IPAddress.Parse(ip);
+            config.Port = port;
             server = new NetServer(config);
             updateThread.Start();
             server.Start();
@@ -64,10 +64,10 @@ namespace SAR_Server_App
                                     server.SendMessage(acceptMsgg, msg.SenderConnection, NetDeliveryMethod.ReliableSequenced);
                                     break;
                                 case NetConnectionStatus.Disconnected:
-                                    Logger.Warn($"{msg.SenderConnection} has disconnected...");
+                                    Logger.Warn($"{msg.SenderEndPoint} has disconnected...");
                                     break;
                                 case NetConnectionStatus.Disconnecting:
-                                    Logger.Warn($"{msg.SenderConnection} is disconnecting...");
+                                    Logger.Warn($"{msg.SenderEndPoint} is disconnecting...");
                                     break;
                             }
                             break;
@@ -77,7 +77,7 @@ namespace SAR_Server_App
                             string clientKey = msg.ReadString();
                             if (clientKey == "flwoi51nawudkowmqqq")
                             {
-                                if (!MATCH_STARTED)
+                                if (!matchStarted)
                                 {
                                     Logger.Success("Connection Allowed");
                                     //Console.WriteLine("Connection is from correct version. Allowing");
@@ -128,7 +128,7 @@ namespace SAR_Server_App
                 }
 
                 //check the count down timer
-                if (!MATCH_STARTED) { checkStartTime(); }
+                if (!matchStarted) { checkStartTime(); }
 
                 //Console.WriteLine("Sending Update to players...");
                 sendEveryonePlayer();
@@ -179,27 +179,25 @@ namespace SAR_Server_App
         }
         private void checkStartTime()
         {
-            if (startTimer > 0)
+            if (timeUntilStart  > 0)
             {
                 if ((prevTime < DateTime.Now.Second) || (prevTime == 59 && DateTime.Now.Second == 0))
                 {
-                    if ((startTimer % 2) < 1)
+                    if ((timeUntilStart  % 2) < 1)
                     {
-                        Logger.Basic($"seconds until start: {startTimer}");
-                        //Logger.Basic($"Previous Second: {prevTime}");
-                        //Logger.Basic($"Current Second: {DateTime.Now.Second}");
+                        Logger.Basic($"seconds until start: {timeUntilStart }");
                     }
-                    startTimer -= 1;
+                    timeUntilStart  -= 1;
                     prevTime = DateTime.Now.Second;
                 }
             }
-            else if (startTimer == 0)
+            else if (timeUntilStart  == 0)
             {
                 //this is so it waits an extra second
                 if ((prevTime < DateTime.Now.Second) || (prevTime == 59 && DateTime.Now.Second == 0))
                 {
                     sendStartGame();
-                    MATCH_STARTED = true;
+                    matchStarted = true;
                 }
             }
         }
@@ -221,36 +219,6 @@ namespace SAR_Server_App
 
             //Send message out
             server.SendToAll(startMsg, NetDeliveryMethod.ReliableUnordered);
-            /*Console.WriteLine("Case 97 Activated!");
-            //must send a message with a byte starting with six
-            NetOutgoingMessage servMsg = server.CreateMessage();
-            servMsg.Write((byte)6); //header of 6
-            servMsg.Write(2f); //x2
-            servMsg.Write(3f); //y2
-            servMsg.Write(5f); //x3
-            servMsg.Write(6f); //y3//
-
-            servMsg.Write((byte)1); //byte 1
-            short e = 32420;
-            //servMsg.Write(e);
-            servMsg.Write(e);
-            servMsg.Write(e + 1);
-            servMsg.Write(e + 2);
-            servMsg.Write(e + 3);
-            servMsg.Write(1);
-            servMsg.Write(e);
-            servMsg.Write(e + 1);
-            servMsg.Write(e + 2);
-            servMsg.Write(e + 3);
-            server.SendToAll(servMsg, NetDeliveryMethod.ReliableOrdered);*/
-        }
-
-        //unused
-        private void sendStartTime()
-        {
-            NetOutgoingMessage stmsg = server.CreateMessage();
-            stmsg.Write((byte)43);
-            stmsg.Write(startTimer);
         }
 
 
@@ -716,7 +684,7 @@ namespace SAR_Server_App
             mMsg.Write(9037281); //seed 3 -- int32 
             // TODO : MAKE SEED RANDOMIZED
 
-            mMsg.Write(startTimer); //time at which game will start [double] 
+            mMsg.Write(timeUntilStart); //time at which game will start [double] 
             mMsg.Write("yerhAGJ"); // match UUID -- string -- MAKE THIS RANDOMIZED OR SOMETHING IDK
             mMsg.Write("solo");
             mMsg.Write((float)0); //x -- No clue? -- maybe has to do with flightpath
