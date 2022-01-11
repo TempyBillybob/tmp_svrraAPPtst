@@ -130,18 +130,16 @@ namespace SAR_Server_App
                 //check the count down timer
                 if (!matchStarted) { checkStartTime(); }
 
-                //Console.WriteLine("Sending Update to players...");
-                sendEveryonePlayer();
+                //updating player info to all people in the match
+                updateEveryoneOnPlayerPositions();
+                updateEveryoneOnPlayerInfo();
 
-
-                
-
-
+                //sleep for a sec 
                 Thread.Sleep(10); // ~1ms delay
             }
         }
 
-        private void sendEveryonePlayer()
+        private void updateEveryoneOnPlayerPositions()
         {
             NetOutgoingMessage playerUpdate = server.CreateMessage();
             playerUpdate.Write((byte)11); // Header -- Basic Update Info
@@ -153,7 +151,7 @@ namespace SAR_Server_App
             for (byte i = 0; i < playerList.Length; i++)
             {
                 if (playerList[i] == null)
-                { 
+                {
                     playerUpdate.Write(i); // Ammount of times to loop (for amount of players, you know?
                     //Logger.Header($"list length: {i}");
                     //Logger.Warn($"sendEveryonePlayer i value: {i}");
@@ -161,7 +159,6 @@ namespace SAR_Server_App
                 }
                 else { continue; }
             }
-
 
             for (int i = 0; i < playerList.Length; i++)
             {
@@ -176,6 +173,43 @@ namespace SAR_Server_App
                 else { break; }
             }
             server.SendToAll(playerUpdate, NetDeliveryMethod.ReliableSequenced);
+        }
+        private void updateEveryoneOnPlayerInfo()
+        {
+            NetOutgoingMessage msg = server.CreateMessage();
+            msg.Write((byte)45); //b == 45
+            for (byte i = 0; i < playerList.Length; i++) //yes, there is a reason i isn't an int. you should start paying attention more.
+            {
+                if (playerList[i] == null)
+                {
+                    msg.Write(i);
+                    //unfortunately the amount of times the client is told to loop, is stated at the beginning.
+                    //so, we have to find the length first, then come back and go through the list again...
+                    //it isn't that it is slow, it just sucks ig.
+                    break;
+                }
+            }
+
+            for (int i = 0; i < playerList.Length; i++)
+            {
+                if (playerList[i] != null) //just to make sure? TODO: make there be an actual reason to do this...
+                {
+                    msg.Write(playerList[i].assignedID);
+                    msg.Write(playerList[i].hp);
+                    msg.Write(playerList[i].armorTier);
+                    msg.Write(playerList[i].armorTapes);
+                    msg.Write(playerList[i].currWalkMode);
+                    msg.Write(playerList[i].drinkies);
+                    msg.Write(playerList[i].tapies);
+                }
+                else { break; }//this *may* cause some problems later
+                /*this can be stated elsewhere, but the way this is dealt with currently WILL cause problems.
+                what do we do when someone disconnects? do we just null their entry in the list?
+                well that's fine if they were the last person, but what if they are 3/6? now players 4,5, and 6 are
+                skipped over entirely now. so the way to keep it working the way it is now if to then reorder the
+                whole entire list. which kind of stinks if you ask me, but that's the result of pushing things off.*/
+            }
+            server.SendToAll(msg, NetDeliveryMethod.ReliableSequenced);
         }
         private void checkStartTime()
         {
@@ -462,42 +496,32 @@ namespace SAR_Server_App
                     break;
                 case 21:
                     //Writes 21 > Write(int:lootID) > Write(byte:slotIndex)
-                    
+                    Player currPlayer = playerList[getPlayerArrayIndex(msg.SenderConnection)];
                     short item = (short)msg.ReadInt32();
                     byte index = msg.ReadByte();
                     if (DEBUG_ENABLED) { Logger.Basic($"Loot ID: {item}\nSlotIndex: {index}"); }
-                    for (int i = 0; i < playerList.Length; i++)
+                    switch (index)
                     {
-                        if (playerList[i] != null)
-                        {
-                            if (playerList[i].sender == msg.SenderConnection)
-                            {
-                                switch (index)
-                                {
-                                    case 0:
-                                        playerList[i].equip1 = item;
-                                        playerList[i].equip1_rarity = 0;
-                                        break;
-                                    case 1:
-                                        playerList[i].equip2 = item;
-                                        playerList[i].equip2_rarity = 0;
-                                        break;
-                                    default:
-                                        Logger.Failure($"Well something went wrong with the index... index: {index}");
-                                        break;
-                                }
-                                NetOutgoingMessage testMessage = server.CreateMessage();
-                                testMessage.Write((byte)22);
-                                testMessage.Write(playerList[i].assignedID); //player
-                                testMessage.Write((int)item); // Thing
-                                //testMessage.Write(playerList[i].equip1);
-                                testMessage.Write(index);
-                                testMessage.Write((byte)4); //Forced Rarity
-                                server.SendToAll(testMessage, NetDeliveryMethod.ReliableUnordered);
-                            }
-                        }
-                        else { break; }
+                        case 0:
+                            currPlayer.equip1 = item;
+                            currPlayer.equip1_rarity = 0;
+                            break;
+                        case 1:
+                            currPlayer.equip2 = item;
+                            currPlayer.equip2_rarity = 0;
+                            break;
+                        default:
+                            Logger.Failure($"Well something went wrong with the index... index: {index}");
+                            break;
                     }
+                    NetOutgoingMessage testMessage = server.CreateMessage();
+                    testMessage.Write((byte)22);
+                    testMessage.Write(currPlayer.assignedID); //player
+                    testMessage.Write((int)item); // Thing
+                                                  //testMessage.Write(playerList[i].equip1);
+                    testMessage.Write(index);
+                    testMessage.Write((byte)4); //Forced Rarity
+                    server.SendToAll(testMessage, NetDeliveryMethod.ReliableUnordered);
                     break;
 
 
@@ -561,6 +585,10 @@ namespace SAR_Server_App
                     exitVehicle.Write(playerList[vehPlrEx].position_Y); //Y
                     playerList[vehPlrEx].vehicleID = -1;
                     server.SendToAll(exitVehicle, NetDeliveryMethod.ReliableOrdered); //yes it's that simple
+                    break;
+                //someone started healing...
+                case 47:
+                    serverSendPlayerStartedHealing(msg.SenderConnection, msg.ReadFloat(), msg.ReadFloat());
                     break;
                 //clientSendVehicleHitPlayer
                 case 60:
@@ -648,6 +676,10 @@ namespace SAR_Server_App
                     NetOutgoingMessage callbackmsg = server.CreateMessage();
                     callbackmsg.Write((byte)97);
                     server.SendMessage(callbackmsg, msg.SenderConnection, NetDeliveryMethod.UnreliableSequenced);
+                    break;
+                //clientSendDucttaping
+                case 98:
+                    serverSendPlayerStartedTaping(msg.SenderConnection, msg.ReadFloat(), msg.ReadFloat());
                     break;
 
                 default:
@@ -883,6 +915,39 @@ namespace SAR_Server_App
             msg.Write(weaponID);
             server.SendToAll(msg, NetDeliveryMethod.ReliableUnordered);
         }
+
+        //client[47] > server[48] -- pretty much a copy of sendingTape and stuff... info inside btw...
+        private void serverSendPlayerStartedHealing(NetConnection sender, float posX, float posY)
+        {
+            Player plr = playerList[getPlayerArrayIndex(sender)];
+            plr.position_X = posX;
+            plr.position_Y = posY;
+            plr.isHealing = true;
+
+            NetOutgoingMessage msg = server.CreateMessage();
+            msg.Write((byte)48);
+            msg.Write(plr.assignedID);
+            server.SendToAll(msg, NetDeliveryMethod.ReliableSequenced);
+            /* so this whole thing only tells the person/everyone that the person who sent this whole message has
+             * started healing. their game won't update their hp, juice count, tape, how much got taped, etc.
+             * so, that all has to be done on a separate function for the server. sooo figure that out later
+             * when it is time to properly tackle healing and stuff. should not be too difficult*/
+        }
+
+        //client[98] > server[99] -- started taping
+        private void serverSendPlayerStartedTaping(NetConnection sender, float posX, float posY)
+        {
+            Player plr = playerList[getPlayerArrayIndex(sender)];
+            plr.position_X = posX;
+            plr.position_Y = posY;
+            plr.isTaping = true;
+
+            NetOutgoingMessage msg = server.CreateMessage();
+            msg.Write((byte)99);
+            msg.Write(plr.assignedID);
+            server.SendToAll(msg, NetDeliveryMethod.ReliableSequenced);
+        }
+
         //Helper Function to get playerID
         private short getPlayerID(NetConnection thisSender)
         {
