@@ -46,5 +46,11 @@ namespace SAR_Server_App
             Console.WriteLine(txt);
             Console.ResetColor();
         }
+        public static void missingHandle(string txt)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(txt);
+            Console.ResetColor();
+        }
     }
 }

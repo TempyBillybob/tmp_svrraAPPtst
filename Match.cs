@@ -1,7 +1,7 @@
 ﻿using System;
 using Lidgren.Network;
 using System.Threading;
-using System.Diagnostics;
+//using System.Diagnostics; --unused
 
 namespace SAR_Server_App
 {
@@ -10,15 +10,16 @@ namespace SAR_Server_App
     {
         private NetPeerConfiguration config;
         public NetServer server;
-        public Player[] playerList; // It's only 128 for testing 
+        public Player[] playerList;
         public Thread updateThread;
-        private int matchSeed1, matchSeed2, matchSeed3;
+        private int matchSeed1, matchSeed2, matchSeed3; //figure out later
         private int REFRESH_RATE = 10;
         private bool MATCH_STARTED;
         private bool MATCH_FULL;
         public double startTimer = 0;
-        int prevTime = DateTime.Now.Second;
-        //PURELY DEBUG STUFF
+        int prevTime = DateTime.Now.Second; //redo start times later
+
+        //these get to go at some point, or never. I'm quite lazy.
         public bool DEBUG_ENABLED;
         public bool ANOYING_DEBUG1;
 
@@ -243,6 +244,8 @@ namespace SAR_Server_App
             servMsg.Write(e + 3);
             server.SendToAll(servMsg, NetDeliveryMethod.ReliableOrdered);*/
         }
+
+        //unused
         private void sendStartTime()
         {
             NetOutgoingMessage stmsg = server.CreateMessage();
@@ -311,16 +314,16 @@ namespace SAR_Server_App
                             playerList[i].myName = readName;
                             switch (steamID)
                             {
-                                case 76561198384352240: //marina
+                                case 76561198384352240: //m
                                     playerList[i].isMod = true;
                                     break;
-                                case 76561198218282413: //skpay
+                                case 76561198218282413:
                                     playerList[i].isMod = true;
                                     break;
-                                case 76561198162222086: //jahvaro
+                                case 76561198162222086:
                                     playerList[i].isMod = true;
                                     break;
-                                case 76561198323046172: //steven
+                                case 76561198323046172:
                                     playerList[i].isMod = true;
                                     break;
                                 default:
@@ -332,7 +335,7 @@ namespace SAR_Server_App
                         }
                     }
 
-                    //This is unneeded, but is kind of useful for testing.
+                    //no longer needed, but is useful.
                     if (DEBUG_ENABLED)
                     {
                         for (int i = 0; i < playerList.Length; i++)
@@ -360,7 +363,7 @@ namespace SAR_Server_App
                     break;
 
                 case 5:
-                    Console.WriteLine("Message Type 5-- Doing something!");
+                    Logger.Header($"<< sending {msg.SenderEndPoint} player characters... >>");
                     sendPlayerCharacters();
                     break;
                 case 7:
@@ -450,7 +453,7 @@ namespace SAR_Server_App
                     }
                     server.SendToAll(plrShot, NetDeliveryMethod.ReliableSequenced);
 
-                    /*
+                    /* using this as a base for later...
                     short weaponID = msg.ReadInt16(); //short -- WeaponId
                     byte slotIndex = msg.ReadByte();//byte -- slotIndex
                     float aimAngle = msg.ReadFloat();//float (myver) -- aimAngle
@@ -539,7 +542,7 @@ namespace SAR_Server_App
                     server.SendToAll(allchatmsg, NetDeliveryMethod.ReliableUnordered);
                     break;
 
-                //sentSelectedSlot
+                //clientSentSelectedSlot
                 case 27:
                     serverSendSlotUpdate(msg.SenderConnection, msg.ReadByte());
                     break;
@@ -558,6 +561,7 @@ namespace SAR_Server_App
                     doneReloading.Write(getPlayerID(msg.SenderConnection)); //playerID
                     server.SendToAll(doneReloading, NetDeliveryMethod.ReliableOrdered); //yes it's that simple
                     break;
+                //figure it out.
                 case 36:
                     serverSendBeganGrenadeThrow(msg);
                     break;
@@ -578,7 +582,8 @@ namespace SAR_Server_App
                     server.SendToAll(enterVehicle, NetDeliveryMethod.ReliableOrdered);
                     break;
 
-                case 57: //EXITING a hamball
+                //clientSendExitHamsterball
+                case 57:
                     short vehPlrEx = getPlayerArrayIndex(msg.SenderConnection);
                     NetOutgoingMessage exitVehicle = server.CreateMessage();
                     exitVehicle.Write((byte)58);
@@ -589,11 +594,12 @@ namespace SAR_Server_App
                     playerList[vehPlrEx].vehicleID = -1;
                     server.SendToAll(exitVehicle, NetDeliveryMethod.ReliableOrdered); //yes it's that simple
                     break;
+                //clientSendVehicleHitPlayer
                 case 60:
                     serverSendVehicleHitPlayer(msg);
                     break;
 
-                //vehicleHitWall
+                //clientSendVehicleHitWall
                 case 62:
                     serverSendPlayerHamsterballBounce(msg);
                     Logger.Failure("and the hamsterball message has finished... so now I get to write!");
@@ -617,7 +623,8 @@ namespace SAR_Server_App
                     server.SendToAll(ballHit, NetDeliveryMethod.ReliableUnordered);
                     break;
 
-                case 66: // Seems to Occurr When Player Attempts to use an EMOTE
+                //clientSendPlayerEmote
+                case 66:
 
                     //Send Back a response
                     short ePlayerID = getPlayerID(msg.SenderConnection);
@@ -675,39 +682,15 @@ namespace SAR_Server_App
                     server.SendMessage(callbackmsg, msg.SenderConnection, NetDeliveryMethod.UnreliableSequenced);
                     break;
 
-                //serverHasSentGameStart returned FALSE in gameServerManager write byte=97
-                /*case 128: // no nono no this start time refers to actual game start!! DDDD:
-                    Console.WriteLine("Case 97 Activated!");
-                    //must send a message with a byte starting with six
-                    NetOutgoingMessage servMsg = server.CreateMessage();
-                    servMsg.Write((byte)6); //header of 6
-                    servMsg.Write(2f); //x2
-                    servMsg.Write(3f); //y2
-                    servMsg.Write(5f); //x3
-                    servMsg.Write(6f); //y3//
-
-                    servMsg.Write((byte)1); //byte 1
-                    short e = 32420;
-                    servMsg.Write(e);
-                    servMsg.Write(e + 1);
-                    servMsg.Write(e + 2);
-                    servMsg.Write(e + 3);
-                    servMsg.Write(1);
-                    servMsg.Write(e);
-                    servMsg.Write(e + 1);
-                    servMsg.Write(e + 2);
-                    servMsg.Write(e + 3);
-                    server.SendMessage(servMsg, msg.SenderConnection, NetDeliveryMethod.ReliableOrdered);
-                    break;*/
-
                 default:
-                    Console.WriteLine(b);
+                    Logger.missingHandle(b.ToString());
                     break;
 
             }
 
             //watch.Stop();
             //Logger.Header($"time taken: {watch.Elapsed}");
+            //this stopwatch is very much not needed.
         }
         //message 1 -> send 2
         private void sendAuthToPlayer(NetConnection client)
@@ -859,7 +842,7 @@ namespace SAR_Server_App
             }
             short grenadeID = message.ReadInt16();
             msg.Write(grenadeID);
-            msg.Write(grenadeID);//this MAY need to be unique, but not 100% sure?-- maybe have a separate counter for the server
+            msg.Write(grenadeID);//likely needs to be unique. not sure how. maybe just make the server have its own counter
             server.SendToAll(msg, NetDeliveryMethod.ReliableSequenced);
         }
 
@@ -867,6 +850,8 @@ namespace SAR_Server_App
         private void serverSendVehicleHitPlayer(NetIncomingMessage message)
         {
             Logger.Basic($"Target Player ID: {message.ReadInt16()}\nSpeed: {message.ReadFloat()}");
+            //It isn't that the bottom code doesn't work, it is just that the "correct" speed value needs to be found.
+
             /*
             //client SENDS this
             NetOutgoingMessage netOutgoingMessage = GameServerManager.netClient.CreateMessage();
