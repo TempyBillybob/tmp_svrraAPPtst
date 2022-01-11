@@ -53,7 +53,7 @@ namespace SAR_Server_App
                             HandleMessage(msg);
                             break;
                         case NetIncomingMessageType.StatusChanged:
-                            Logger.Header("~-- { Status Change} --~");
+                            //Logger.Header("~-- { Status Change} --~");
                             switch (msg.SenderConnection.Status)
                             {
                                 case NetConnectionStatus.Connected:
