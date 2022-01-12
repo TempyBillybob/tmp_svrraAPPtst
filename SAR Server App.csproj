@@ -3,13 +3,14 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>SAR_Server_App</RootNamespace>
+    <RootNamespace>WC.SARS</RootNamespace>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Product>$(AssemblyName)</Product>
     <Authors>WaffleIngester#3406</Authors>
     <Company />
     <PackageIcon></PackageIcon>
     <ApplicationIcon>sad korone.ico</ApplicationIcon>
+    <AssemblyName>WC SARS</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
