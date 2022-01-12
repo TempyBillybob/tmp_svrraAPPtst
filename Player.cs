@@ -3,7 +3,7 @@
 so the idea of this class is to be a client object that a server object can store in a list.
 */
 
-namespace SAR_Server_App
+namespace WC.SARS
 {
     class Player
     {

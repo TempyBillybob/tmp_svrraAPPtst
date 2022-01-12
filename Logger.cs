@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SAR_Server_App
+namespace WC.SARS
 {
     class Logger
     {

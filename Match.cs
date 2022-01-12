@@ -3,7 +3,7 @@ using Lidgren.Network;
 using System.Threading;
 //using System.Diagnostics; --unused
 
-namespace SAR_Server_App
+namespace WC.SARS
 {
     class Match
         //sendType 73 == doodad destroy
@@ -53,7 +53,7 @@ namespace SAR_Server_App
                             HandleMessage(msg);
                             break;
                         case NetIncomingMessageType.StatusChanged:
-                            //Logger.Header("~-- { Status Change} --~");
+                            Logger.Header("~-- { Status Change} --~");
                             switch (msg.SenderConnection.Status)
                             {
                                 case NetConnectionStatus.Connected:
